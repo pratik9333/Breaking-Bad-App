@@ -1,27 +1,47 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-const baseURl = "https://www.breakingbadapi.com/api/characters";
-let timeout = null;
+import Pagination from "./Pagination";
+
+const baseURl = "https://www.breakingbadapi.com/api/characters"; //Base URI to fetch data
+
 const HomePage = () => {
-  const [characters, setCharacters] = useState([]);
-  const [searchcharacters, setSearchedCharacters] = useState([]);
+  const [characters, setCharacters] = useState([]); // state use to store characters
+  const [currentPage, setCurrentPage] = useState(1); // state use to store current page details
+  const [postsPerPage] = useState(10); // state use to store maximum page details
+
+  // Get Current posts
+  const indexOfLastPost = currentPage * postsPerPage;
+  const indexOfFirstPost = indexOfLastPost - postsPerPage;
+  const currentPosts = characters.slice(indexOfFirstPost, indexOfLastPost);
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  // function that will get the data as soon as page loads
   const getData = () => {
-    axios.get(baseURl).then((response) => {
+    axios
+      .get(baseURl)
+      .then((response) => {
+        if (response.status == 200) {
+          setCharacters(response.data);
+        }
+      })
+      .catch((error) => {
+        alert(error);
+      });
+  };
+
+  //Function to check the category when clicking on dropdown and will update as per that
+  const checkCategory = (e) => {
+    let val = e.target.innerText;
+    let category = val.split(" ").join("+");
+    axios.get(baseURl + "?category=" + category).then((response) => {
       setCharacters(response.data);
     });
   };
-  const debounce = () => {
-    let input = document.getElementById("my-input");
-    clearTimeout(timeout);
-    timeout = setTimeout(function () {
-      setSearchedCharacters(
-        characters.filter((character) =>
-          character.name.toLowerCase().includes(input.value.toLowerCase())
-        )
-      );
-    }, 1000);
-  };
+
+  // UseEffect Hook
   useEffect(() => {
     getData();
   }, []);
@@ -33,15 +53,6 @@ const HomePage = () => {
           <h2>Breaking Bad Characters List</h2>
         </div>
         <div className="filter-class">
-          <div className="search">
-            <input
-              type="text"
-              className="input"
-              placeholder="Search Character"
-              id="my-input"
-              onKeyUp={debounce}
-            />
-          </div>
           <div className="dropdown">
             <div className="dropdown-button-sec">
               <label className="dropdown-button">
@@ -53,10 +64,12 @@ const HomePage = () => {
                 <input type="checkbox" className="dd-input" id="test" />
 
                 <ul className="dd-menu">
-                  <li>Action</li>
-                  <li>Another action</li>
-                  <li className="divider"></li>
-                  <li>Doing work</li>
+                  <li onClick={checkCategory} value="Breaking Bad">
+                    Breaking Bad
+                  </li>
+                  <li onClick={checkCategory} value="Breaking Call Saul">
+                    Better Call Saul
+                  </li>
                 </ul>
               </label>
             </div>
@@ -74,78 +87,30 @@ const HomePage = () => {
                 <th>Date Of Birth</th>
                 <th>Status</th>
               </tr>
-              {searchcharacters.length == 0
-                ? characters.map((character) => (
-                    <tr key={character.char_id}>
-                      <td>
-                        <Link to={"/character/" + character.char_id}>
-                          {character.name}
-                        </Link>
-                      </td>
-                      <td>{character.occupation}</td>
-                      <td>
-                        {character.birthday === "Unknown"
-                          ? "-"
-                          : character.birthday}
-                      </td>
-                      <td>{character.status}</td>
-                    </tr>
-                  ))
-                : searchcharacters.map((character) => (
-                    <tr key={character.char_id}>
-                      <td>
-                        <Link to={"/character/" + character.char_id}>
-                          {character.name}
-                        </Link>
-                      </td>
-                      <td>{character.occupation}</td>
-                      <td>
-                        {character.birthday === "Unknown"
-                          ? "-"
-                          : character.birthday}
-                      </td>
-                      <td>{character.status}</td>
-                    </tr>
-                  ))}
+              {currentPosts.map((character) => (
+                <tr key={character.char_id}>
+                  <td>
+                    <Link to={"/character/" + character.char_id}>
+                      {character.name}
+                    </Link>
+                  </td>
+                  <td>{character.occupation}</td>
+                  <td>
+                    {character.birthday === "Unknown"
+                      ? "-"
+                      : character.birthday}
+                  </td>
+                  <td>{character.status}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-        <div className="pagination justify-content-center">
-          <nav aria-label="Page navigation example">
-            <ul className="pagination justify-content-center">
-              <li className="page-item disabled">
-                <a
-                  className="page-link"
-                  href="#"
-                  tabIndex="-1"
-                  aria-disabled="true"
-                >
-                  Previous
-                </a>
-              </li>
-              <li className="page-item">
-                <a className="page-link" href="#">
-                  1
-                </a>
-              </li>
-              <li className="page-item">
-                <a className="page-link" href="#">
-                  2
-                </a>
-              </li>
-              <li className="page-item">
-                <a className="page-link" href="#">
-                  3
-                </a>
-              </li>
-              <li className="page-item">
-                <a className="page-link" href="#">
-                  Next
-                </a>
-              </li>
-            </ul>
-          </nav>
-        </div>
+        <Pagination
+          postsPerPage={postsPerPage}
+          totalPosts={characters.length}
+          paginate={paginate}
+        />
       </div>
     </div>
   );
